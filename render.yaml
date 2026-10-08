@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: ponto-q-tbj
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: .

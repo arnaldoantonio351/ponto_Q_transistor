@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calculadora de Ponto Q – TBJ</title>
+  <meta name="description" content="Calcule o ponto de operação (ponto Q) de transistores bipolares (TBJ) com reta de carga interativa." />
+  <link rel="stylesheet" href="style.css" />
+  <script id="plotly-js" src="https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.2/plotly-basic.min.js" async></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <h1>Ponto Q do TBJ</h1>
+      <p class="sub">Polarização fixa, por divisor de tensão e por realimentação do coletor — transistor NPN</p>
+    </div>
+  </header>
+
+  <main class="wrap grid">
+    <!-- ESCOLHA DO CIRCUITO -->
+    <section class="card picker">
+      <h2>Escolha o circuito</h2>
+      <div class="picker-grid" id="picker" role="radiogroup" aria-label="Topologia de polarização"></div>
+    </section>
+
+    <!-- ENTRADAS -->
+    <section class="card inputs">
+      <h2>Parâmetros do circuito</h2>
+      <form id="form" autocomplete="off">
+
+        <div class="field" data-show="fixa div2">
+          <label for="vbb">V<sub>BB</sub> (fonte da base)</label>
+          <div class="row"><input id="vbb" type="number" step="any" value="5" /><span class="unit">V</span></div>
+        </div>
+        <div class="field">
+          <label for="vcc">V<sub>CC</sub> <span data-show="fixa div2">(fonte do coletor)</span><span data-show="fixa1 div1 realim">(fonte única)</span></label>
+          <div class="row"><input id="vcc" type="number" step="any" value="12" /><span class="unit">V</span></div>
+        </div>
+        <div class="field" data-show="fixa fixa1 realim">
+          <label for="rb">R<sub>B</sub> <small data-show="fixa">(V<sub>BB</sub> → base)</small><small data-show="fixa1">(V<sub>CC</sub> → base)</small><small data-show="realim">(coletor → base)</small></label>
+          <div class="row">
+            <input id="rb" type="number" step="any" min="0" value="430" />
+            <select id="rb_u"><option value="1">Ω</option><option value="1e3" selected>kΩ</option><option value="1e6">MΩ</option></select>
+          </div>
+        </div>
+        <div class="field" data-show="div1 div2">
+          <label for="r1">R<sub>1</sub> <small>(fonte → base)</small></label>
+          <div class="row">
+            <input id="r1" type="number" step="any" min="0" value="10" />
+            <select id="r1_u"><option value="1">Ω</option><option value="1e3" selected>kΩ</option><option value="1e6">MΩ</option></select>
+          </div>
+        </div>
+        <div class="field" data-show="div1 div2">
+          <label for="r2">R<sub>2</sub> <small>(base → GND)</small></label>
+          <div class="row">
+            <input id="r2" type="number" step="any" min="0" value="10" />
+            <select id="r2_u"><option value="1">Ω</option><option value="1e3" selected>kΩ</option><option value="1e6">MΩ</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="rc">R<sub>C</sub> <small>(0 = coletor direto em V<sub>CC</sub>)</small></label>
+          <div class="row">
+            <input id="rc" type="number" step="any" min="0" value="5.6" />
+            <select id="rc_u"><option value="1">Ω</option><option value="1e3" selected>kΩ</option><option value="1e6">MΩ</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="re">R<sub>E</sub> <small>(0 = sem resistor de emissor)</small></label>
+          <div class="row">
+            <input id="re" type="number" step="any" min="0" value="0" />
+            <select id="re_u"><option value="1">Ω</option><option value="1e3" selected>kΩ</option><option value="1e6">MΩ</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="beta">β (h<sub>FE</sub>)</label>
+          <div class="row"><input id="beta" type="number" step="any" min="1" value="100" /></div>
+          <input id="beta_slider" type="range" min="10" max="500" step="1" value="100" aria-label="β (controle deslizante)" />
+        </div>
+
+        <details>
+          <summary>Parâmetros do transistor</summary>
+          <div class="field">
+            <label for="vbe">V<sub>BE(on)</sub></label>
+            <div class="row"><input id="vbe" type="number" step="any" value="0.7" /><span class="unit">V</span></div>
+          </div>
+          <div class="field">
+            <label for="vcesat">V<sub>CE(sat)</sub></label>
+            <div class="row"><input id="vcesat" type="number" step="any" min="0" value="0.2" /><span class="unit">V</span></div>
+          </div>
+          <div class="field">
+            <label for="pmax">P<sub>D(max)</sub> do transistor <small>(opcional)</small></label>
+            <div class="row"><input id="pmax" type="number" step="any" min="0" placeholder="ex.: 625" /><span class="unit">mW</span></div>
+          </div>
+        </details>
+
+        <div class="presets">
+          <span>Exemplos:</span>
+          <button type="button" data-preset="ativa">Ativa</button>
+          <button type="button" data-preset="sat">Saturação</button>
+          <button type="button" data-preset="corte">Corte</button>
+          <button type="button" data-preset="re">Com R<sub>E</sub></button>
+          <button type="button" data-preset="div1">Divisor (seguidor de emissor)</button>
+          <button type="button" data-preset="div2">Divisor com V<sub>BB</sub></button>
+          <button type="button" data-preset="fixa1">Fixa com fonte única</button>
+          <button type="button" data-preset="realim">Realimentação do coletor</button>
+        </div>
+      </form>
+
+      <figure class="circuit" id="circuit" aria-label="Diagrama do circuito selecionado"></figure>
+    </section>
+
+    <!-- RESULTADOS -->
+    <section class="card results">
+      <div class="status" id="status" role="status">
+        <span class="badge" id="badge">—</span>
+        <p id="status_txt"></p>
+      </div>
+
+      <div class="qpoint">
+        <span class="qlabel">Ponto Q</span>
+        <span class="qval" id="qval">—</span>
+      </div>
+
+      <div class="tiles">
+        <div class="tile"><span>I<sub>BQ</sub> = I<sub>B</sub></span><b id="ib">—</b></div>
+        <div class="tile"><span>I<sub>CQ</sub> = I<sub>C</sub></span><b id="ic">—</b></div>
+        <div class="tile"><span>I<sub>E</sub></span><b id="ie">—</b></div>
+        <div class="tile"><span>V<sub>CEQ</sub></span><b id="vce">—</b></div>
+        <div class="tile"><span>V<sub>BE</sub></span><b id="vbe_r">—</b></div>
+        <div class="tile"><span>I<sub>C(sat)</sub></span><b id="icsat">—</b></div>
+        <div class="tile"><span>V<sub>C</sub> / V<sub>E</sub> / V<sub>B</sub></span><b id="nodes">—</b></div>
+        <div class="tile"><span>β<sub>forçado</sub> = I<sub>C</sub>/I<sub>B</sub></span><b id="bforced">—</b></div>
+        <div class="tile" data-show="div1 div2"><span>V<sub>TH</sub> / R<sub>TH</sub></span><b id="thev">—</b></div>
+        <div class="tile" data-show="div1 div2"><span>I<sub>R1</sub> / I<sub>R2</sub></span><b id="ir12">—</b></div>
+      </div>
+
+      <h3>Potência</h3>
+      <div class="tiles">
+        <div class="tile accent"><span>P<sub>D</sub> transistor</span><b id="pd">—</b></div>
+        <div class="tile"><span>P<sub>RC</sub></span><b id="prc">—</b></div>
+        <div class="tile" data-show="fixa fixa1 realim"><span>P<sub>RB</sub></span><b id="prb">—</b></div>
+        <div class="tile" data-show="div1 div2"><span>P<sub>R1</sub> / P<sub>R2</sub></span><b id="pr12">—</b></div>
+        <div class="tile"><span>P<sub>RE</sub></span><b id="pre">—</b></div>
+        <div class="tile"><span>P fornecida pelas fontes</span><b id="pin">—</b></div>
+        <div class="tile"><span>P<sub>D(max)</sub> do circuito</span><b id="pdmax">—</b></div>
+      </div>
+      <p class="warn" id="pwarn" hidden></p>
+    </section>
+
+    <!-- GRÁFICO -->
+    <section class="card chart">
+      <div class="chart-head">
+        <h2>Curvas de saída, reta de carga CC e ponto Q</h2>
+        <label class="chk"><input type="checkbox" id="show_hyper" checked /> Hipérbole de P<sub>D</sub></label>
+      </div>
+      <div id="plot"></div>
+      <p class="hint">Passe o mouse sobre as curvas para ver os valores. Arraste para dar zoom; clique duas vezes para restaurar.</p>
+    </section>
+
+    <!-- FÓRMULAS -->
+    <section class="card formulas">
+      <h2>Como é calculado</h2>
+      <ol id="steps"></ol>
+    </section>
+  </main>
+
+  <footer class="wrap foot">Modelo de grandes sinais: V<sub>BE</sub> constante, β constante na região ativa, sem efeito Early.</footer>
+</body>
+</html>
