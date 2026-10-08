@@ -166,3 +166,17 @@ svg .lbl text { fill: var(--muted); font-size: 12px; font-family: inherit; strok
   }
   .pick { scroll-snap-align: start; }
 }
+
+/* abas NPN / PNP */
+.title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.poltabs { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; padding: 3px; background: var(--bg); }
+.poltabs button {
+  border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 700;
+  padding: 6px 18px; border-radius: 7px; cursor: pointer;
+}
+.poltabs button[aria-selected="true"] { background: var(--accent); color: var(--card); }
+.poltabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[data-pol].offp { display: none !important; }
+.note { font-size: .82rem; color: var(--text); background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; margin: 0 0 12px; }
+h2 small.muted { color: var(--muted); font-weight: 400; font-size: .8rem; }
+.picker-grid { scrollbar-color: var(--border) transparent; }

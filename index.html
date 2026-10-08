@@ -12,8 +12,15 @@
 <body>
   <header class="topbar">
     <div class="wrap">
-      <h1>Ponto Q do TBJ</h1>
-      <p class="sub">Polarização fixa, por divisor de tensão e por realimentação do coletor — transistor NPN</p>
+      <div class="title-row">
+        <h1>Ponto Q do TBJ</h1>
+        <div class="poltabs" role="tablist" aria-label="Tipo de transistor">
+          <button type="button" role="tab" data-pol-tab="npn" aria-selected="true">NPN</button>
+          <button type="button" role="tab" data-pol-tab="pnp" aria-selected="false">PNP</button>
+        </div>
+      </div>
+      <p class="sub">Polarização fixa, por divisor de tensão e por realimentação do coletor — transistor
+        <span data-pol="npn">NPN</span><span data-pol="pnp">PNP</span></p>
     </div>
   </header>
 
@@ -28,6 +35,7 @@
     <section class="card inputs">
       <h2>Parâmetros do circuito</h2>
       <form id="form" autocomplete="off">
+        <p class="note" data-pol="pnp">Transistor <b>PNP</b>: as fontes são negativas (−V<sub>CC</sub>, −V<sub>BB</sub>). Informe os valores em <b>módulo</b>; os resultados mostram V<sub>EB</sub>, V<sub>EC</sub> e as tensões de nó negativas.</p>
 
         <div class="field" data-show="fixa div2">
           <label for="vbb">V<sub>BB</sub> (fonte da base)</label>
@@ -81,11 +89,11 @@
         <details>
           <summary>Parâmetros do transistor</summary>
           <div class="field">
-            <label for="vbe">V<sub>BE(on)</sub></label>
+            <label for="vbe"><span data-pol="npn">V<sub>BE(on)</sub></span><span data-pol="pnp">V<sub>EB(on)</sub></span></label>
             <div class="row"><input id="vbe" type="number" step="any" value="0.7" /><span class="unit">V</span></div>
           </div>
           <div class="field">
-            <label for="vcesat">V<sub>CE(sat)</sub></label>
+            <label for="vcesat"><span data-pol="npn">V<sub>CE(sat)</sub></span><span data-pol="pnp">V<sub>EC(sat)</sub></span></label>
             <div class="row"><input id="vcesat" type="number" step="any" min="0" value="0.2" /><span class="unit">V</span></div>
           </div>
           <div class="field">
@@ -126,10 +134,10 @@
         <div class="tile"><span>I<sub>BQ</sub> = I<sub>B</sub></span><b id="ib">—</b></div>
         <div class="tile"><span>I<sub>CQ</sub> = I<sub>C</sub></span><b id="ic">—</b></div>
         <div class="tile"><span>I<sub>E</sub></span><b id="ie">—</b></div>
-        <div class="tile"><span>V<sub>CEQ</sub></span><b id="vce">—</b></div>
-        <div class="tile"><span>V<sub>BE</sub></span><b id="vbe_r">—</b></div>
+        <div class="tile"><span><span data-pol="npn">V<sub>CEQ</sub></span><span data-pol="pnp">V<sub>ECQ</sub> = −V<sub>CEQ</sub></span></span><b id="vce">—</b></div>
+        <div class="tile"><span><span data-pol="npn">V<sub>BE</sub></span><span data-pol="pnp">V<sub>EB</sub> = −V<sub>BE</sub></span></span><b id="vbe_r">—</b></div>
         <div class="tile"><span>I<sub>C(sat)</sub></span><b id="icsat">—</b></div>
-        <div class="tile"><span>V<sub>C</sub> / V<sub>E</sub> / V<sub>B</sub></span><b id="nodes">—</b></div>
+        <div class="tile"><span>V<sub>C</sub> / V<sub>E</sub> / V<sub>B</sub> <small data-pol="pnp">(negativas)</small></span><b id="nodes">—</b></div>
         <div class="tile"><span>β<sub>forçado</sub> = I<sub>C</sub>/I<sub>B</sub></span><b id="bforced">—</b></div>
         <div class="tile" data-show="div1 div2"><span>V<sub>TH</sub> / R<sub>TH</sub></span><b id="thev">—</b></div>
         <div class="tile" data-show="div1 div2"><span>I<sub>R1</sub> / I<sub>R2</sub></span><b id="ir12">—</b></div>
@@ -151,7 +159,7 @@
     <!-- GRÁFICO -->
     <section class="card chart">
       <div class="chart-head">
-        <h2>Curvas de saída, reta de carga CC e ponto Q</h2>
+        <h2>Curvas de saída, reta de carga CC e ponto Q <small class="muted" data-pol="pnp">(PNP: eixos em módulo, V<sub>EC</sub> × I<sub>C</sub>)</small></h2>
         <label class="chk"><input type="checkbox" id="show_hyper" checked /> Hipérbole de P<sub>D</sub></label>
       </div>
       <div id="plot"></div>

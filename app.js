@@ -10,9 +10,12 @@
  *   div2 : VBB —R1— Base —R2— GND   (divisor com fonte própria na base)
  * Coletor: VCC —RC— Coletor | Emissor —RE— GND
  * Os divisores são reduzidos ao equivalente de Thévenin (V_TH, R_TH).
+ * PNP: mesmo circuito com fontes invertidas (−V_CC, −V_BB). A análise é idêntica
+ * usando módulos (V_EB, V_EC); só a exibição troca sinais e nomes.
  * ============================================================ */
 
 const $ = (id) => document.getElementById(id);
+let PNP = false;
 
 const TOPOS = [
   { id: "fixa",   name: "Polarização fixa",          sub: "Fonte V<sub>BB</sub> na base + R<sub>B</sub>" },
@@ -48,30 +51,35 @@ const ZIG_H = (x0, x1, y) => {               // resistor horizontal de x0 até x
 };
 const L = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
 const DOT = (x, y) => `<circle cx="${x}" cy="${y}" r="2.5" class="fill"/>`;
-const BAT = (x, yTop, yBot) =>               // fonte CC: placa longa (+) em cima
-  L(x, yTop, x, 120) + `<line x1="${x - 12}" y1="120" x2="${x + 12}" y2="120" class="thick"/>` +
-  `<line x1="${x - 7}" y1="136" x2="${x + 7}" y2="136"/>` + L(x, 136, x, yBot);
+const BAT = (x, yTop, yBot, neg = false) =>  // fonte CC: placa longa (+) em cima; invertida se neg
+  L(x, yTop, x, 120) +
+  `<line x1="${x - (neg ? 7 : 12)}" y1="120" x2="${x + (neg ? 7 : 12)}" y2="120"${neg ? "" : ' class="thick"'}/>` +
+  `<line x1="${x - (neg ? 12 : 7)}" y1="136" x2="${x + (neg ? 12 : 7)}" y2="136"${neg ? ' class="thick"' : ""}/>` +
+  L(x, 136, x, yBot);
 const TXT = (x, y, main, sub = "") =>
   `<text x="${x}" y="${y}">${main}${sub ? `<tspan font-size="0.7em" dy="3">${sub}</tspan>` : ""}</text>`;
 
-function circuitSVG(topo, { rc = true, re = true } = {}) {
+function circuitSVG(topo, { rc = true, re = true, pnp = PNP } = {}) {
   let w = "", t = "";
-  // transistor NPN (base em x=140, coletor/emissor em x=165)
+  const V = pnp ? "−V" : "V";
+  // transistor (base em x=140, coletor/emissor em x=165); seta para fora (NPN) ou para dentro (PNP)
   w += `<circle cx="155" cy="90" r="22"/><line x1="140" y1="76" x2="140" y2="104" class="thick"/>`;
-  w += L(140, 84, 165, 68) + L(140, 96, 165, 112) + `<polygon points="165,112 155,111 160,104" class="fill"/>`;
+  w += L(140, 84, 165, 68) + L(140, 96, 165, 112);
+  w += pnp ? `<polygon points="150,102.4 158.9,103.3 154.6,110.1" class="fill"/>`
+           : `<polygon points="165,112 155,111 160,104" class="fill"/>`;
   // coletor → R_C → V_CC
   w += L(165, 68, 165, 55) + (rc ? ZIG_V(165, 55, 21) : L(165, 55, 165, 21)) + L(165, 21, 165, 12);
-  w += L(165, 12, 230, 12) + BAT(230, 12, 200);
+  w += L(165, 12, 230, 12) + BAT(230, 12, 200, pnp);
   if (rc) t += TXT(178, 42, "R", "C");
-  t += TXT(240, 112, "V", "CC");
+  t += TXT(238, 112, V, "CC");
   // emissor → R_E → GND
   w += L(165, 112, 165, 135) + (re ? ZIG_V(165, 135, 169) : L(165, 135, 165, 169)) + L(165, 169, 165, 200);
   w += L(165, 200, 230, 200);
   if (re) t += TXT(178, 156, "R", "E");
 
   if (topo === "fixa") {
-    w += BAT(30, 90, 200) + L(30, 90, 50, 90) + ZIG_H(50, 110, 90) + L(110, 90, 140, 90) + L(30, 200, 165, 200);
-    t += TXT(2, 112, "V", "BB") + TXT(70, 74, "R", "B");
+    w += BAT(30, 90, 200, pnp) + L(30, 90, 50, 90) + ZIG_H(50, 110, 90) + L(110, 90, 140, 90) + L(30, 200, 165, 200);
+    t += TXT(0, 112, V, "BB") + TXT(70, 74, "R", "B");
   } else if (topo === "fixa1") {
     w += L(100, 12, 165, 12) + DOT(165, 12) + L(100, 12, 100, 30) + ZIG_V(100, 30, 70) + L(100, 70, 100, 90) + L(100, 90, 140, 90);
     t += TXT(112, 52, "R", "B");
@@ -80,19 +88,20 @@ function circuitSVG(topo, { rc = true, re = true } = {}) {
     w += ZIG_V(80, 120, 160) + L(80, 160, 80, 200) + L(80, 200, 165, 200);
     t += TXT(92, 52, "R", "1") + TXT(92, 144, "R", "2");
     if (topo === "div1") w += L(80, 12, 165, 12) + DOT(165, 12);
-    else { w += L(80, 12, 30, 12) + BAT(30, 12, 200) + L(30, 200, 80, 200); t += TXT(2, 112, "V", "BB"); }
+    else { w += L(80, 12, 30, 12) + BAT(30, 12, 200, pnp) + L(30, 200, 80, 200); t += TXT(0, 112, V, "BB"); }
   } else if (topo === "realim") {
     w += DOT(165, 60) + L(165, 60, 120, 60) + ZIG_H(120, 60, 60) + L(60, 60, 60, 90) + L(60, 90, 140, 90);
     t += TXT(80, 46, "R", "B");
   }
   t += TXT(140, 222, "GND");
-  return `<svg viewBox="0 0 260 230" role="img" aria-hidden="true"><g class="wire">${w}</g><g class="lbl">${t}</g></svg>`;
+  return `<svg viewBox="0 0 272 230" role="img" aria-hidden="true"><g class="wire">${w}</g><g class="lbl">${t}</g></svg>`;
 }
 
 function renderPicker() {
-  $("picker").innerHTML = TOPOS.map((tp, i) => `
+  const cur = document.querySelector('input[name="topo"]:checked')?.value || "fixa";
+  $("picker").innerHTML = TOPOS.map((tp) => `
     <label class="pick">
-      <input type="radio" name="topo" value="${tp.id}" ${i === 0 ? "checked" : ""} />
+      <input type="radio" name="topo" value="${tp.id}" ${tp.id === cur ? "checked" : ""} />
       <span class="box">${circuitSVG(tp.id)}<b>${tp.name}</b><small>${tp.sub}</small></span>
     </label>`).join("");
 }
@@ -115,7 +124,7 @@ function eng(value, unit, digits = 3) {
   return fmt(value / 1e-12, digits) + " p" + unit;
 }
 function fmt(x, digits) {
-  return Number(x.toPrecision(digits)).toLocaleString("pt-BR", { maximumFractionDigits: 6 });
+  return Number(x.toPrecision(digits)).toLocaleString("pt-BR", { maximumFractionDigits: 6 }).replace("-", "−");
 }
 
 /* ---------- leitura das entradas ---------- */
@@ -315,20 +324,25 @@ function renderResults(r, p) {
     else if (pos <= 0.4) txt += " — próximo da saturação; o sinal pode ser ceifado no semiciclo que aumenta I_C.";
     else txt += " — próximo do corte; o sinal pode ser ceifado no semiciclo que diminui I_C.";
   } else if (r.region === "sat") {
-    txt = `I_C ficou limitado pelo circuito externo (β·I_B = ${eng(p.beta * r.ib, "A")} > I_C(sat)). V_CE ≈ V_CE(sat): o transistor funciona como chave fechada.`;
+    txt = `I_C ficou limitado pelo circuito externo (β·I_B = ${eng(p.beta * r.ib, "A")} > I_C(sat)). ${PNP ? "V_EC ≈ V_EC(sat)" : "V_CE ≈ V_CE(sat)"}: o transistor funciona como chave fechada.`;
   } else {
-    txt = "Não há corrente de base suficiente para polarizar a junção BE. O transistor funciona como chave aberta (V_CE = V_CC).";
+    txt = PNP
+      ? "Não há corrente de base suficiente para polarizar a junção EB. O transistor funciona como chave aberta (V_EC = |V_CC|)."
+      : "Não há corrente de base suficiente para polarizar a junção BE. O transistor funciona como chave aberta (V_CE = V_CC).";
   }
   $("status_txt").textContent = txt;
 
-  $("qval").textContent = `(V_CEQ = ${eng(r.vce, "V")} ; I_CQ = ${eng(r.ic, "A")})`;
+  $("qval").textContent = PNP
+    ? `(V_ECQ = ${eng(r.vce, "V")} ; I_CQ = ${eng(r.ic, "A")})  ·  V_CEQ = ${eng(-r.vce, "V")}`
+    : `(V_CEQ = ${eng(r.vce, "V")} ; I_CQ = ${eng(r.ic, "A")})`;
   $("ib").textContent = eng(r.ib, "A");
   $("ic").textContent = eng(r.ic, "A");
   $("ie").textContent = eng(r.ie, "A");
   $("vce").textContent = eng(r.vce, "V");
   $("vbe_r").textContent = eng(r.vbeQ, "V");
   $("icsat").textContent = eng(r.icsat, "A");
-  $("nodes").textContent = `${fmt(r.vC, 3)} / ${fmt(r.vE, 3)} / ${fmt(r.vB, 3)} V`;
+  const sg = PNP ? -1 : 1; // no PNP com fontes negativas, todas as tensões de nó são negativas
+  $("nodes").textContent = `${fmt(sg * r.vC, 3)} / ${fmt(sg * r.vE, 3)} / ${fmt(sg * r.vB, 3)} V`;
   $("bforced").textContent = r.ib > 0 ? fmt(r.ic / r.ib, 4) : "—";
 
   $("pd").textContent = eng(r.pd, "W");
@@ -354,7 +368,14 @@ function renderResults(r, p) {
     w.hidden = true;
   }
 
-  $("steps").innerHTML = r.steps.map((s) => `<li>${s}</li>`).join("");
+  let steps = r.steps;
+  if (PNP) {
+    steps = steps.map((s) => s
+      .replaceAll("V<sub>BE", "V<sub>EB").replaceAll("V<sub>CE", "V<sub>EC")
+      .replaceAll("→ BE →", "→ EB →").replaceAll("junção base-emissor", "junção emissor-base"));
+    steps.unshift(`<b>Transistor PNP</b> com fontes −V<sub>CC</sub>${p.topo === "fixa" || p.topo === "div2" ? " e −V<sub>BB</sub>" : ""}: a análise é a mesma do NPN usando <b>módulos</b> (V<sub>EB</sub> no lugar de V<sub>BE</sub>, V<sub>EC</sub> no lugar de V<sub>CE</sub>). As correntes têm sentido oposto: I<sub>E</sub> entra pelo emissor, I<sub>B</sub> e I<sub>C</sub> saem pela base e pelo coletor. Assim V<sub>CE</sub> = −V<sub>EC</sub> e V<sub>BE</sub> = −V<sub>EB</sub>.`);
+  }
+  $("steps").innerHTML = steps.map((s) => `<li>${s}</li>`).join("");
 }
 
 function renderErrors(errors) {
@@ -381,6 +402,7 @@ function css(name) {
 
 function renderPlot(r, p) {
   if (!window.Plotly) return;
+  const VL = PNP ? "V_EC" : "V_CE";
   const { vcc, beta, vcesat } = p;
   const mA = 1e3;
   const xMax = vcc * 1.08;
@@ -405,7 +427,7 @@ function renderPlot(r, p) {
       x: xs, y: curve(ib), mode: "lines", type: "scatter",
       line: { color: muted, width: 1 }, opacity: 0.55,
       name: `I_B = ${eng(ib, "A")}`, showlegend: false,
-      hovertemplate: `I_B = ${eng(ib, "A")}<br>V_CE = %{x:.2f} V<br>I_C = %{y:.3f} mA<extra></extra>`,
+      hovertemplate: `I_B = ${eng(ib, "A")}<br>${VL} = %{x:.2f} V<br>I_C = %{y:.3f} mA<extra></extra>`,
     });
     const lastY = beta * ib * mA;
     traces.push({
@@ -420,7 +442,7 @@ function renderPlot(r, p) {
       x: xs, y: curve(r.ib), mode: "lines", type: "scatter",
       line: { color: accent, width: 2, dash: "dot" },
       name: `I_BQ = ${eng(r.ib, "A")}`,
-      hovertemplate: `I_BQ = ${eng(r.ib, "A")}<br>V_CE = %{x:.2f} V<br>I_C = %{y:.3f} mA<extra></extra>`,
+      hovertemplate: `I_BQ = ${eng(r.ib, "A")}<br>${VL} = %{x:.2f} V<br>I_C = %{y:.3f} mA<extra></extra>`,
     });
   }
 
@@ -428,7 +450,7 @@ function renderPlot(r, p) {
   traces.push({
     x: [0, vcc], y: [r.icsatIdeal * mA, 0], mode: "lines", type: "scatter",
     line: { color: accent, width: 3 }, name: "Reta de carga CC",
-    hovertemplate: "V_CE = %{x:.2f} V<br>I_C = %{y:.3f} mA<extra>Reta de carga</extra>",
+    hovertemplate: `${VL} = %{x:.2f} V<br>I_C = %{y:.3f} mA<extra>Reta de carga</extra>`,
   });
 
   // hipérbole de potência
@@ -439,8 +461,8 @@ function renderPlot(r, p) {
       traces.push({
         x: hx, y: hx.map((v) => (P / v) * mA), mode: "lines", type: "scatter",
         line: { color: cut, width: 1.5, dash: "dash" },
-        name: p.pmax !== null ? `P_D(max) = ${eng(P, "W")}` : `P = V_CE·I_C = ${eng(P, "W")}`,
-        hovertemplate: "V_CE = %{x:.2f} V<br>I_C = %{y:.3f} mA<extra>Hipérbole de potência</extra>",
+        name: p.pmax !== null ? `P_D(max) = ${eng(P, "W")}` : `P = ${VL}·I_C = ${eng(P, "W")}`,
+        hovertemplate: `${VL} = %{x:.2f} V<br>I_C = %{y:.3f} mA<extra>Hipérbole de potência</extra>`,
       });
     }
   }
@@ -451,7 +473,7 @@ function renderPlot(r, p) {
     marker: { size: 14, color: qColor, line: { color: css("--card"), width: 2 } },
     text: ["Q"], textposition: "top right", textfont: { color: qColor, size: 15 },
     name: "Ponto Q",
-    hovertemplate: `<b>Ponto Q</b><br>V_CEQ = ${eng(r.vce, "V")}<br>I_CQ = ${eng(r.ic, "A")}<br>I_BQ = ${eng(r.ib, "A")}<br>P_D = ${eng(r.pd, "W")}<extra></extra>`,
+    hovertemplate: `<b>Ponto Q</b><br>${VL}Q = ${eng(r.vce, "V")}<br>I_CQ = ${eng(r.ic, "A")}<br>I_BQ = ${eng(r.ib, "A")}<br>P_D = ${eng(r.pd, "W")}<extra></extra>`,
   });
 
   // linhas de projeção do Q
@@ -470,7 +492,7 @@ function renderPlot(r, p) {
     paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
     font: { color: text, family: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif" },
     margin: { l: 60, r: 20, t: 50, b: 50 },
-    xaxis: { title: "V_CE (V)", range: [0, xMax], gridcolor: border, zerolinecolor: muted },
+    xaxis: { title: `${VL} (V)`, range: [0, xMax], gridcolor: border, zerolinecolor: muted },
     yaxis: { title: "I_C (mA)", range: [0, yMax], gridcolor: border, zerolinecolor: muted },
     legend: { orientation: "h", x: 0, y: 1.02, yanchor: "bottom" },
     hovermode: "closest",
@@ -480,6 +502,20 @@ function renderPlot(r, p) {
 }
 
 /* ---------- ciclo principal ---------- */
+function setPolarity(pnp) {
+  PNP = pnp;
+  document.querySelectorAll("[data-pol-tab]").forEach((b) =>
+    b.setAttribute("aria-selected", String((b.dataset.polTab === "pnp") === pnp))
+  );
+  document.querySelectorAll("[data-pol]").forEach((el) =>
+    el.classList.toggle("offp", el.dataset.pol !== (pnp ? "pnp" : "npn"))
+  );
+  document.title = `Calculadora de Ponto Q – TBJ ${pnp ? "PNP" : "NPN"}`;
+  try { history.replaceState(null, "", pnp ? "#pnp" : "#npn"); } catch (_) {}
+  renderPicker();
+  update();
+}
+
 function applyTopology() {
   const t = topology();
   document.querySelectorAll("[data-show]").forEach((el) =>
@@ -504,6 +540,9 @@ function update() {
 function init() {
   renderPicker();
   $("picker").addEventListener("change", update);
+  document.querySelectorAll("[data-pol-tab]").forEach((b) =>
+    b.addEventListener("click", () => setPolarity(b.dataset.polTab === "pnp"))
+  );
   const form = $("form");
   form.addEventListener("input", (e) => {
     if (e.target.id === "beta_slider") $("beta").value = e.target.value;
@@ -533,7 +572,7 @@ function init() {
       $("plot").innerHTML = '<p class="hint">Não foi possível carregar a biblioteca de gráficos (verifique a conexão).</p>';
     });
   }
-  update();
+  setPolarity(location.hash === "#pnp");
 }
 
 document.addEventListener("DOMContentLoaded", init);
